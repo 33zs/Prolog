@@ -1191,7 +1191,7 @@ conn_fog(_, _, hidden).
 /* Map legend for start page */
 game_map_legend -->
     html(div(class(map_legend), [
-        h3('Dungeon Map (8x8 Grid)'),
+        h3('Dungeon Map (6x6 Grid)'),
         pre(class(map_pre_large),
 '█ █ █ █ █ █ █ █
 █ ? ? ? ? ? ? █
