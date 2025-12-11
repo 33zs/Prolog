@@ -1,0 +1,2 @@
+(move guard guard_room corridor_north)
+(move guard corridor_north entrance)
