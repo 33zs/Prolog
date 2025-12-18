@@ -18,6 +18,7 @@
 /* Discontiguous declarations for predicates defined in multiple places */
 :- discontiguous valuable/1.
 :- discontiguous use/1.
+:- discontiguous go/1.
 
 /* ============================================================================
    DYNAMIC PREDICATES - Facts that change during gameplay
@@ -189,11 +190,11 @@ potion_heal(30).
    ============================================================================ */
 
 /* Difficulty modifiers */
-difficulty_modifier(easy, guard_speed, 0.5).
-difficulty_modifier(easy, thief_speed, 0.5).
-difficulty_modifier(easy, trap_damage, 0.5).
-difficulty_modifier(easy, health_bonus, 50).
-difficulty_modifier(easy, guard_damage, 0.8).
+difficulty_modifier(easy, guard_speed, 0.4).  /* Reduced from 0.5: guards move slower */
+difficulty_modifier(easy, thief_speed, 0.4).  /* Reduced from 0.5: thief moves slower */
+difficulty_modifier(easy, trap_damage, 0.3).  /* Reduced from 0.5: less trap damage */
+difficulty_modifier(easy, health_bonus, 70).  /* Increased from 50: more starting health (170 total) */
+difficulty_modifier(easy, guard_damage, 0.6). /* Reduced from 0.8: guards deal less damage */
 
 difficulty_modifier(normal, guard_speed, 1.0).
 difficulty_modifier(normal, thief_speed, 1.0).
@@ -201,14 +202,14 @@ difficulty_modifier(normal, trap_damage, 1.0).
 difficulty_modifier(normal, health_bonus, 0).
 difficulty_modifier(normal, guard_damage, 1.0).
 
-difficulty_modifier(hard, guard_speed, 3.0).
-difficulty_modifier(hard, thief_speed, 3.0).
-difficulty_modifier(hard, trap_damage, 2.0).
-difficulty_modifier(hard, health_bonus, -20).
-difficulty_modifier(hard, guard_damage, 1.5).
-difficulty_modifier(hard, hit_penalty, -25).
-difficulty_modifier(hard, kill_penalty, -25).
-difficulty_modifier(hard, counter_mult, 2.0).
+difficulty_modifier(hard, guard_speed, 2.0).  /* Reduced from 3.0: guards move 2x per turn instead of 3x */
+difficulty_modifier(hard, thief_speed, 2.0).  /* Reduced from 3.0: thief moves 2x per turn instead of 3x */
+difficulty_modifier(hard, trap_damage, 1.5).  /* Reduced from 2.0: less trap damage (15 instead of 20) */
+difficulty_modifier(hard, health_bonus, -10). /* Increased from -20: start with 90 health instead of 80 */
+difficulty_modifier(hard, guard_damage, 1.3). /* Reduced from 1.5: guards deal less damage */
+difficulty_modifier(hard, hit_penalty, -15).  /* Reduced from -25: easier to hit enemies */
+difficulty_modifier(hard, kill_penalty, -15). /* Reduced from -25: easier to kill enemies */
+difficulty_modifier(hard, counter_mult, 1.5). /* Reduced from 2.0: counter attacks deal less damage */
 
 /* Get current difficulty */
 get_difficulty(Level) :-
@@ -278,14 +279,13 @@ init_game :-
     retractall(room_mapping(_, _)),
     retractall(player_gold(_)),
     retractall(shop_item(_, _)),
+    retractall(enemy_move_path(_, _)),
 
     /* Initialize random room mapping */
     init_random_room_mapping,
 
     /* Fixed room names for key locations */
     StartRoom = entrance,
-    LibraryRoom = library,
-    TreasureRoom = treasure_room,
     ExitRoom = exit_hall,
 
     /* Initialize player with difficulty-adjusted health */
@@ -305,8 +305,8 @@ init_game :-
     /* Randomly place the key in one of several locations */
     random_key_placement,
 
-    /* Place treasure */
-    assert(at(gold_treasure, TreasureRoom)),
+    /* Place treasure - easy mode: next to entrance */
+    place_treasure,
 
     /* Lock the exit door */
     assert(door_locked(ExitRoom)),
@@ -502,12 +502,18 @@ get_room_position(Room, Position) :-
     room_mapping(Position, Room), !.
 
 /* Randomly place key in one of several locations */
+/* All difficulty levels now use random placement */
 random_key_placement :-
     /* Possible locations for key (not entrance, exit_hall, treasure_room) */
     KeyLocations = [guard_room, armory, library, prison_cell, secret_passage, storage,
                     vault, crypt, observatory, throne_room, gallery, great_hall],
     random_member(KeyLoc, KeyLocations),
     assert(at(key, KeyLoc)).
+
+/* Place treasure */
+/* All difficulty levels now place treasure in treasure_room */
+place_treasure :-
+    assert(at(gold_treasure, treasure_room)).
 
 /* Randomly place items (torch, ancient_book, sword, shield, health_potion, rope) */
 random_item_placement :-
@@ -560,21 +566,38 @@ random_trap_placement :-
 
 /* Initialize adversaries with random starting positions */
 init_adversaries :-
-    /* Possible starting locations for enemies (not entrance, exit_hall, treasure_room) */
-    EnemyLocations = [guard_room, armory, library, prison_cell, secret_passage, storage],
+    /* Get all existing rooms, excluding entrance, exit_hall, and treasure_room */
+    findall(R, (room(R), R \= entrance, R \= exit_hall, R \= treasure_room), AllRooms),
+
+    /* Verify we have at least 2 rooms for enemies */
+    length(AllRooms, NumRooms),
+    NumRooms >= 2,
+    !,
 
     /* Randomly place guard */
-    random_member(GuardLoc, EnemyLocations),
+    random_member(GuardLoc, AllRooms),
     assert(adversary_at(guard, GuardLoc)),
     assert(adversary_type(guard, patrol)),
 
     /* Randomly place thief (different location) */
-    delete(EnemyLocations, GuardLoc, Locs2),
-    random_member(ThiefLoc, Locs2),
+    delete(AllRooms, GuardLoc, RemainingRooms),
+    random_member(ThiefLoc, RemainingRooms),
     assert(adversary_at(thief, ThiefLoc)),
-    assert(adversary_type(thief, thief)),
+    assert(adversary_type(thief, treasure_hunter)),
 
     /* Generate initial plans for adversaries */
+    generate_adversary_plan(guard),
+    generate_adversary_plan(thief).
+
+/* Fallback: if not enough rooms, place in default locations */
+init_adversaries :-
+    /* Default safe locations */
+    (room(guard_room) -> GuardLoc = guard_room ; GuardLoc = entrance),
+    (room(armory) -> ThiefLoc = armory ; ThiefLoc = entrance),
+    assert(adversary_at(guard, GuardLoc)),
+    assert(adversary_type(guard, patrol)),
+    assert(adversary_at(thief, ThiefLoc)),
+    assert(adversary_type(thief, treasure_hunter)),
     generate_adversary_plan(guard),
     generate_adversary_plan(thief).
 
@@ -622,7 +645,7 @@ generate_adversary_plan(Adversary) :-
     atom_concat('adversary_problem_', Adversary, BaseName),
     atom_concat(BaseName, '.pddl', ProblemFile),
     catch(
-        run_pyperplan_soln(pyperplan, 'adversary_domain.pddl', ProblemFile, Plan),
+        run_pyperplan_soln(path(pyperplan), 'adversary_domain.pddl', ProblemFile, Plan),
         _Error,
         Plan = []
     ),
@@ -651,8 +674,22 @@ determine_goal(Adversary, GoalLoc) :-
     i_am_at(GoalLoc),
     !.
 
+/* Thief wanders randomly in first 20 turns */
 determine_goal(Adversary, GoalLoc) :-
-    adversary_type(Adversary, thief),
+    adversary_type(Adversary, treasure_hunter),
+    turn_count(T),
+    T < 20,
+    !,
+    /* Random movement like patrol */
+    adversary_at(Adversary, CurrentLoc),
+    findall(L, (adjacent(CurrentLoc, L), \+ door_locked(L)), AdjList),
+    length(AdjList, Len),
+    Len > 0,
+    random_between(1, Len, Idx),
+    nth1(Idx, AdjList, GoalLoc).
+
+determine_goal(Adversary, GoalLoc) :-
+    adversary_type(Adversary, treasure_hunter),
     (at(gold_treasure, GoalLoc) -> true ;
      holding(gold_treasure) -> i_am_at(GoalLoc) ;
      GoalLoc = treasure_room),
@@ -690,6 +727,21 @@ execute_adversary_turn(_) :-
     game_over,
     !.
 
+/* Don't move if guard is defeated */
+execute_adversary_turn(guard) :-
+    guard_defeated,
+    !.
+
+/* Don't move if thief is defeated */
+execute_adversary_turn(thief) :-
+    thief_defeated,
+    !.
+
+/* Don't move if adversary is imprisoned */
+execute_adversary_turn(Adversary) :-
+    adversary_at(Adversary, prison_cell),
+    !.
+
 /* If adversary is already at goal, don't move */
 execute_adversary_turn(Adversary) :-
     adversary_at(Adversary, CurrentLoc),
@@ -718,6 +770,18 @@ execute_adversary_turn(Adversary) :-
     assert(adversary_plan(Adversary, Rest)),
     !.
 
+/* Fallback: escaping thief can ignore locked doors */
+execute_adversary_turn(thief) :-
+    adversary_type(thief, escaping),
+    adversary_at(thief, CurrentLoc),
+    findall(NextLoc, adjacent(CurrentLoc, NextLoc), AdjList),
+    AdjList \= [],
+    random_member(NextLoc, AdjList),
+    retract(adversary_at(thief, CurrentLoc)),
+    assert(adversary_at(thief, NextLoc)),
+    check_adversary_encounter(thief, NextLoc),
+    !.
+
 /* Fallback: random move if plan failed */
 execute_adversary_turn(Adversary) :-
     adversary_at(Adversary, CurrentLoc),
@@ -733,6 +797,27 @@ execute_adversary_turn(Adversary) :-
 execute_adversary_turn(_).  % Final fallback: do nothing
 
 /* Validate action before execution */
+/* Escaping thief can ignore locked doors */
+validate_and_execute_action(thief, move(thief, From, To), Success) :-
+    adversary_type(thief, escaping),
+    adversary_at(thief, From),
+    adjacent(From, To),
+    !,
+    retract(adversary_at(thief, From)),
+    assert(adversary_at(thief, To)),
+    Success = true,
+    check_adversary_encounter(thief, To).
+
+validate_and_execute_action(thief, move(From, To), Success) :-
+    adversary_type(thief, escaping),
+    adversary_at(thief, From),
+    adjacent(From, To),
+    !,
+    retract(adversary_at(thief, From)),
+    assert(adversary_at(thief, To)),
+    Success = true,
+    check_adversary_encounter(thief, To).
+
 /* Handle format: move(adversary, from, to) from pyperplan */
 validate_and_execute_action(Adversary, move(Adversary, From, To), Success) :-
     adversary_at(Adversary, From),
@@ -891,14 +976,23 @@ handle_thief_steals :-
     treasure_stolen,
     !.
 
+/* Thief cannot steal in first 20 turns */
 handle_thief_steals :-
-    retract(at(gold_treasure, _)),
+    turn_count(T),
+    T < 20,
+    !.
+
+handle_thief_steals :-
+    /* Verify treasure exists before stealing */
+    at(gold_treasure, TreasureLoc),
+    retract(at(gold_treasure, TreasureLoc)),
+    !,
     assert(treasure_stolen),
     nl, write('*** Oh no! The thief has stolen the treasure! ***'), nl,
     thief_dialogue(steal),
     write('You must catch the thief to recover it!'), nl,
     /* Thief now tries to escape */
-    retract(adversary_type(thief, _)),
+    retractall(adversary_type(thief, _)),
     assert(adversary_type(thief, escaping)),
     generate_adversary_plan(thief).
 
@@ -907,8 +1001,17 @@ handle_thief_robs_player :-
     treasure_stolen,
     !.  /* Already stolen, do nothing */
 
+/* Thief cannot rob in first 20 turns */
 handle_thief_robs_player :-
+    turn_count(T),
+    T < 20,
+    !.
+
+handle_thief_robs_player :-
+    /* Verify player has treasure before robbing */
+    holding(gold_treasure),
     retract(holding(gold_treasure)),
+    !,
     assert(treasure_stolen),
     nl, write('*** The thief snatches the treasure right from your hands! ***'), nl,
     thief_dialogue(steal),
@@ -1049,10 +1152,25 @@ take(X) :-
     (X = gold_treasure ->
         (nl, write('*** You have the treasure! Now escape! ***'), nl,
          write('But beware - the THIEF will hunt you down!'), nl,
+         /* Clear treasure_stolen flag if treasure was recovered */
+         (treasure_stolen ->
+            (retract(treasure_stolen),
+             write('*** You recovered the stolen treasure! ***'), nl)
+         ; true),
          /* Thief discovers player when treasure is taken */
          (\+ thief_discovered ->
             (assert(thief_discovered),
              write('*** The THIEF has noticed you have the treasure! They will chase you! ***'), nl)
+         ; true))
+    ; true),
+    /* Guard discovers player when key is taken */
+    (X = key ->
+        (nl, write('*** You found the key! ***'), nl,
+         (\+ guard_discovered ->
+            (assert(guard_discovered),
+             i_am_at(PlayerLoc),
+             assert(guard_discovered_at(PlayerLoc)),
+             write('*** The GUARD senses the key has been taken! He is now hunting you! ***'), nl)
          ; true))
     ; true),
     !, advance_turn.
@@ -1060,26 +1178,9 @@ take(X) :-
 take(thief) :-
     i_am_at(Place),
     adversary_at(thief, Place),
-    adversary_at(guard, Place),
-    treasure_stolen,
     !,
-    write('You try to grab the thief, but the guard blocks your way!'), nl,
-    write('Deal with the guard first, or find another way.'), nl.
-
-take(thief) :-
-    i_am_at(Place),
-    adversary_at(thief, Place),
-    treasure_stolen,
-    !,
-    write('You tackle the thief and recover the treasure!'), nl,
-    retract(treasure_stolen),
-    assert(holding(gold_treasure)),
-    /* Track item collection for collector achievement */
-    (item_collected(gold_treasure) -> true ; assert(item_collected(gold_treasure))),
-    retract(adversary_at(thief, Place)),
-    assert(adversary_at(thief, prison_cell)),
-    write('The thief is knocked out. You have the treasure!'), nl,
-    advance_turn.
+    write('The thief is too quick to grab with bare hands!'), nl,
+    write('Try using a rope to tie him up, or attack him with a weapon.'), nl.
 
 take(_) :-
     write('I don''t see it here.'),
@@ -1243,11 +1344,14 @@ use(bomb) :-
     (Enemy = guard ->
         (write('The guard is knocked unconscious!'), nl,
          retract(adversary_at(guard, Place)),
-         assert(guard_defeated))
+         assert(adversary_at(guard, prison_cell)),
+         assert(guard_defeated),
+         write('The guard is now imprisoned!'), nl)
     ;
         (write('The thief is stunned and captured!'), nl,
          retract(adversary_at(thief, Place)),
          assert(adversary_at(thief, prison_cell)),
+         assert(thief_defeated),
          (treasure_stolen ->
              (retract(treasure_stolen),
               assert(at(gold_treasure, Place)),
@@ -1301,7 +1405,8 @@ use(magic_ring) :-
     holding(magic_ring),
     !,
     retract(holding(magic_ring)),
-    player_gold(G),
+    /* Safe gold retrieval with default value */
+    (player_gold(G) -> true ; G = 0),
     NewG is G + 50,
     retractall(player_gold(_)),
     assert(player_gold(NewG)),
@@ -1313,7 +1418,8 @@ use(magic_ring) :-
     ;
         NewBS = 50
     ),
-    assert(bonus_score(NewBS)).
+    assert(bonus_score(NewBS)),
+    advance_turn.
 
 /* Sell valuable items for gold */
 use(X) :-
@@ -1327,7 +1433,8 @@ use(X) :-
     NewG is G + Value,
     retract(player_gold(_)),
     assert(player_gold(NewG)),
-    format('You sell the ~w for ~w gold! Total gold: ~w~n', [X, Value, NewG]).
+    format('You sell the ~w for ~w gold! Total gold: ~w~n', [X, Value, NewG]),
+    advance_turn.
 
 use(X) :-
     holding(X),
@@ -1404,7 +1511,8 @@ sell(Item) :-
     NewG is G + Value,
     retract(player_gold(_)),
     assert(player_gold(NewG)),
-    format('You sold ~w for ~w gold! Total gold: ~w~n', [Item, Value, NewG]).
+    format('You sold ~w for ~w gold! Total gold: ~w~n', [Item, Value, NewG]),
+    advance_turn.
 
 sell(gold_treasure) :-
     holding(gold_treasure),
@@ -1655,7 +1763,14 @@ check_adversary_discovery(Room) :-
     assert(guard_discovered),
     assert(guard_discovered_at(Room)),
     write('*** You have discovered the GUARD! They will now hunt you! ***'), nl.
-/* Thief discovery is handled in take(gold_treasure), not by entering room */
+
+check_adversary_discovery(Room) :-
+    adversary_at(thief, Room),
+    \+ thief_discovered,
+    !,
+    assert(thief_discovered),
+    write('*** You have discovered the THIEF lurking in the shadows! ***'), nl.
+
 check_adversary_discovery(_).
 
 go(_) :-
@@ -1697,6 +1812,7 @@ check_trap(Room) :-
     \+ trap_triggered(Room),
     has_light,
     !,
+    /* Mark as triggered - player avoided it successfully */
     assert(trap_triggered(Room)),
     write('Your torch reveals a trap! You carefully avoid it.'), nl.
 
@@ -1815,20 +1931,25 @@ advance_turn :-
 advance_turn :-
     turn_count(T),
     NewT is T + 1,
-    retract(turn_count(_)),
+    retractall(turn_count(_)),
     assert(turn_count(NewT)),
 
-    /* Trigger random events */
-    maybe_random_event,
+    /* Check win/lose conditions first (after incrementing turn) */
+    check_game_state,
 
-    /* Update adversary behaviors */
-    update_adversary_behaviors,
+    /* If game is over, stop here; otherwise continue with turn logic */
+    (game_over ->
+        true
+    ;
+        (/* Trigger random events */
+         maybe_random_event,
 
-    /* Execute adversary turns */
-    execute_all_adversary_turns,
+         /* Update adversary behaviors */
+         update_adversary_behaviors,
 
-    /* Check win/lose conditions */
-    check_game_state.
+         /* Execute adversary turns */
+         execute_all_adversary_turns)
+    ).
 
 /* ============================================================================
    RANDOM EVENTS SYSTEM
@@ -1884,10 +2005,27 @@ trigger_random_event(2) :-
 trigger_random_event(3) :-
     !,
     nl, write('~~ RANDOM EVENT ~~'), nl,
-    write('The dungeon shakes! An earthquake!'), nl,
+    write('*** EARTHQUAKE! ***'), nl,
+    write('The dungeon shakes violently! Rocks fall from the ceiling!'), nl,
     write('You hear confused shouts as enemies scramble...'), nl,
-    random_relocate_enemy(guard),
-    random_relocate_enemy(thief),
+    nl,
+    /* Relocate enemies and report new positions */
+    (adversary_at(guard, GuardOld) ->
+        (random_relocate_enemy(guard),
+         adversary_at(guard, GuardNew),
+         (GuardOld \= GuardNew ->
+             format('The GUARD was thrown from ~w to ~w!~n', [GuardOld, GuardNew])
+         ; true))
+    ; true),
+    (adversary_at(thief, ThiefOld) ->
+        (random_relocate_enemy(thief),
+         adversary_at(thief, ThiefNew),
+         (ThiefOld \= ThiefNew ->
+             format('The THIEF was thrown from ~w to ~w!~n', [ThiefOld, ThiefNew])
+         ; true))
+    ; true),
+    nl,
+    write('The shaking subsides...'), nl,
     nl.
 
 /* Event 4: Ghost whisper - gives hint */
@@ -1922,6 +2060,8 @@ trigger_random_event(6) :-
     nl, write('~~ RANDOM EVENT ~~'), nl,
     format('A giant rat snatches your ~w and runs away!~n', [Item]),
     retract(holding(Item)),
+    /* Clear has_light flag if a light source was stolen */
+    (light_source(Item) -> retract(has_light) ; true),
     i_am_at(Loc),
     random_adjacent_room(Loc, NewLoc),
     assert(at(Item, NewLoc)),
@@ -2066,34 +2206,65 @@ execute_all_adversary_turns :-
     /* Clear previous movement paths */
     retractall(enemy_move_path(_, _)),
     get_adversary_moves(GuardMoves, ThiefMoves),
-    /* Guard only moves if discovered - record starting position */
-    (guard_discovered ->
-        (adversary_at(guard, GuardStart),
-         assert(enemy_move_path(guard, [GuardStart])),
-         execute_adversary_n_times_with_path(guard, GuardMoves))
+    /* Guard moves if discovered OR player has key */
+    ((guard_discovered ; holding(key)) ->
+        (adversary_at(guard, GuardStart) ->
+            (assert(enemy_move_path(guard, [GuardStart])),
+             execute_adversary_n_times_with_path(guard, GuardMoves),
+             /* Check if guard moved into player's room - auto discover */
+             check_guard_discovery_after_move)
+        ; true)
     ; true),
     /* Thief always moves - actively hunting for treasure or chasing player */
     (adversary_at(thief, ThiefStart) ->
         (assert(enemy_move_path(thief, [ThiefStart])),
-         execute_adversary_n_times_with_path(thief, ThiefMoves))
+         execute_adversary_n_times_with_path(thief, ThiefMoves),
+         /* Check if thief moved into player's room - auto discover */
+         check_thief_discovery_after_move)
     ; true),
     report_adversary_movement.
 
-/* Get number of moves based on difficulty */
-get_adversary_moves(GuardMoves, ThiefMoves) :-
-    get_difficulty(hard),
+/* Check if guard moved into player's room */
+check_guard_discovery_after_move :-
+    i_am_at(PlayerLoc),
+    adversary_at(guard, PlayerLoc),
+    \+ guard_discovered,
     !,
-    GuardMoves = 3,   % Guard moves up to 3 steps per turn in hard mode (actual steps = min(3, distance to target))
-    ThiefMoves = 3.   % Thief moves up to 3 steps per turn in hard mode (actual steps = min(3, distance to target))
+    assert(guard_discovered),
+    assert(guard_discovered_at(PlayerLoc)),
+    nl, write('*** The GUARD has found you! ***'), nl.
+check_guard_discovery_after_move.
 
-get_adversary_moves(GuardMoves, ThiefMoves) :-
-    get_difficulty(easy),
+/* Check if thief moved into player's room */
+check_thief_discovery_after_move :-
+    i_am_at(PlayerLoc),
+    adversary_at(thief, PlayerLoc),
+    \+ thief_discovered,
     !,
-    /* Easy mode: 50% chance enemies skip their turn */
-    (random(R1), R1 < 0.5 -> GuardMoves = 0 ; GuardMoves = 1),
-    (random(R2), R2 < 0.5 -> ThiefMoves = 0 ; ThiefMoves = 1).
+    assert(thief_discovered),
+    nl, write('*** The THIEF has found you! ***'), nl.
+check_thief_discovery_after_move.
 
-get_adversary_moves(1, 1).  % Normal: up to 1 step per turn (actual steps = min(1, distance to target))
+/* Get number of moves based on difficulty using speed multipliers */
+get_adversary_moves(GuardMoves, ThiefMoves) :-
+    get_difficulty(Diff),
+    difficulty_modifier(Diff, guard_speed, GuardSpeed),
+    difficulty_modifier(Diff, thief_speed, ThiefSpeed),
+    calculate_moves_from_speed(GuardSpeed, GuardMoves),
+    calculate_moves_from_speed(ThiefSpeed, ThiefMoves).
+
+/* Convert speed multiplier to discrete move count */
+/* For fractional speeds (like 0.4), use probability to achieve average */
+calculate_moves_from_speed(Speed, Moves) :-
+    Speed >= 1.0,
+    !,
+    Moves is round(Speed).  % Round to nearest integer for speeds >= 1.0
+
+calculate_moves_from_speed(Speed, Moves) :-
+    Speed < 1.0,
+    /* Use probability for fractional speeds: Speed% chance to move 1 step */
+    random(R),
+    (R < Speed -> Moves = 1 ; Moves = 0).
 
 /* Execute adversary turn N times WITH path recording */
 execute_adversary_n_times_with_path(_, 0) :- !.
@@ -2205,9 +2376,9 @@ check_lose :-
     finish.
 
 check_lose :-
-    /* Time limit - optional harder mode */
+    /* Time limit - game ends after turn 100 (at turn 101) */
     turn_count(T),
-    T > 100,
+    T >= 101,
     !,
     assert(game_over),
     nl,
@@ -2328,9 +2499,9 @@ instructions :-
     write('                food_ration(10g), bomb(50g), map_scroll(40g)'), nl,
     nl,
     write('[ DIFFICULTY LEVELS ]'), nl,
-    write('  Easy:   150 HP, slower enemies, less trap/guard damage'), nl,
+    write('  Easy:   170 HP, enemies move 2x slower, 40% trap/guard damage'), nl,
     write('  Normal: 100 HP, standard speed and damage'), nl,
-    write('  Hard:   80 HP, faster enemies, more damage, combat penalties'), nl,
+    write('  Hard:   90 HP, enemies move 2x faster, 50% more damage, -15% combat hit/kill'), nl,
     nl,
     write('[ SCORING ]'), nl,
     write('  Score = 1000 - (Turns x 5) + (Health x 2)'), nl,

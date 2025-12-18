@@ -215,7 +215,7 @@ execute_cmd(Cmd) :-
     atom(Cmd),
     atom_string(Cmd, CmdStr),
     sub_string(CmdStr, 0, 4, _, "buy("),
-    sub_string(CmdStr, 4, _, _, ItemStrRaw),
+    sub_string(CmdStr, 4, _, 0, ItemStrRaw),
     % Remove trailing ) and optional .
     (sub_string(ItemStrRaw, _, _, 0, ").") ->
         sub_string(ItemStrRaw, 0, _, 2, ItemStr)
@@ -231,7 +231,7 @@ execute_cmd(Cmd) :-
     atom(Cmd),
     atom_string(Cmd, CmdStr),
     sub_string(CmdStr, 0, 5, _, "sell("),
-    sub_string(CmdStr, 5, _, _, ItemStrRaw),
+    sub_string(CmdStr, 5, _, 0, ItemStrRaw),
     % Remove trailing ) and optional .
     (sub_string(ItemStrRaw, _, _, 0, ").") ->
         sub_string(ItemStrRaw, 0, _, 2, ItemStr)
@@ -247,7 +247,7 @@ execute_cmd(Cmd) :-
     atom(Cmd),
     atom_string(Cmd, CmdStr),
     sub_string(CmdStr, 0, 5, _, "take("),
-    sub_string(CmdStr, 5, _, _, ItemStrRaw),
+    sub_string(CmdStr, 5, _, 0, ItemStrRaw),
     % Remove trailing ) and optional .
     (sub_string(ItemStrRaw, _, _, 0, ").") ->
         sub_string(ItemStrRaw, 0, _, 2, ItemStr)
@@ -263,7 +263,7 @@ execute_cmd(Cmd) :-
     atom(Cmd),
     atom_string(Cmd, CmdStr),
     sub_string(CmdStr, 0, 5, _, "drop("),
-    sub_string(CmdStr, 5, _, _, ItemStrRaw),
+    sub_string(CmdStr, 5, _, 0, ItemStrRaw),
     % Remove trailing ) and optional .
     (sub_string(ItemStrRaw, _, _, 0, ").") ->
         sub_string(ItemStrRaw, 0, _, 2, ItemStr)
@@ -279,7 +279,7 @@ execute_cmd(Cmd) :-
     atom(Cmd),
     atom_string(Cmd, CmdStr),
     sub_string(CmdStr, 0, 4, _, "use("),
-    sub_string(CmdStr, 4, _, _, ItemStrRaw),
+    sub_string(CmdStr, 4, _, 0, ItemStrRaw),
     % Remove trailing ) and optional .
     (sub_string(ItemStrRaw, _, _, 0, ").") ->
         sub_string(ItemStrRaw, 0, _, 2, ItemStr)
@@ -295,7 +295,7 @@ execute_cmd(Cmd) :-
     atom(Cmd),
     atom_string(Cmd, CmdStr),
     sub_string(CmdStr, 0, 11, _, "difficulty("),
-    sub_string(CmdStr, 11, _, _, LevelStrRaw),
+    sub_string(CmdStr, 11, _, 0, LevelStrRaw),
     % Remove trailing ) and optional .
     (sub_string(LevelStrRaw, _, _, 0, ").") ->
         sub_string(LevelStrRaw, 0, _, 2, LevelStr)
@@ -470,8 +470,8 @@ get_difficulty_stats(Level, Health, TrapDmg, GuardDmg, EnemyMoves, HitPen, KillP
 get_difficulty_stats(normal, 100, 10, 25, '1x/turn', '0%', '0%', 'x1.0').
 
 /* Get combat stats based on difficulty level */
-get_difficulty_combat_stats(easy, '50% skip', '+25%', '+25%', 'x0.5') :- !.
-get_difficulty_combat_stats(hard, '3x/turn', '-25%', '-25%', 'x2.0') :- !.
+get_difficulty_combat_stats(easy, '0.4x speed', '+0%', '+0%', 'x0.6') :- !.
+get_difficulty_combat_stats(hard, '2x/turn', '-15%', '-15%', 'x1.5') :- !.
 get_difficulty_combat_stats(_, '1x/turn', '0%', '0%', 'x1.0').  % Normal
 
 /* HTML Generation - Game Page */
@@ -499,7 +499,8 @@ game_html_with_output(Output, state(Loc, Health, Turn, Items, GameOver, Won, Ene
                 div(class(stat), [span(class(label), LocLabel), span(class(value), \location_display(Loc))]),
                 div(class(stat), [span(class(label), HealthLabel), \health_display(Health)]),
                 div(class(stat), [span(class(label), '💰Gold: '), span(class(gold_value), Gold)]),
-                div(class(stat), [span(class(label), TurnLabel), span(class(value), TurnsLeft)])
+                div(class(stat), [span(class(label), TurnLabel), span(class(value), TurnsLeft)]),
+                \equipment_display(Items)
             ]),
 
             /* Main Game Area - Map on LEFT, Text on RIGHT */
@@ -514,7 +515,7 @@ game_html_with_output(Output, state(Loc, Health, Turn, Items, GameOver, Won, Ene
                 div(class(side_panel), [
                     /* Output Panel */
                     div(class(output_panel), [
-                        div(class(output), [pre(Output)])
+                        div(class(output), [pre(id(game_output), Output)])
                     ]),
 
                     /* Quick Actions - Moved from bottom controls */
@@ -571,6 +572,39 @@ get_max_health_value(100).
 location_display(Loc) -->
     {room_short_name(Loc, Display)},
     html(Display).
+
+/* Equipment display - shows equipped weapons and armor */
+equipment_display(Items) -->
+    {
+        findall(E, (member(E, Items), is_equipment(E)), Equipment),
+        Equipment \= []
+    },
+    !,
+    html(div(class(equipment_stat), [
+        span(class(label), '🎖️Equipped: '),
+        \equipment_icons(Equipment)
+    ])).
+
+equipment_display(_) --> [].  % No equipment
+
+/* Check if item is equipment (passive effect) */
+is_equipment(sword).
+is_equipment(shield).
+is_equipment(armor).
+is_equipment(dagger).
+
+/* Generate equipment icons */
+equipment_icons([]) --> [].
+equipment_icons([Item|Rest]) -->
+    {equipment_icon(Item, Icon)},
+    html(span(class(equip_icon), Icon)),
+    equipment_icons(Rest).
+
+/* Equipment icons */
+equipment_icon(sword, '⚔️').
+equipment_icon(shield, '🛡️').
+equipment_icon(armor, '🦺').
+equipment_icon(dagger, '🗡️').
 
 /* Quick Actions Panel - for side panel */
 quick_actions_panel -->
@@ -867,9 +901,10 @@ enemy_animation_script -->
         '        var prevPos = path[step-1];\n',
         '        var prevIdx = prevPos[0] * 8 + prevPos[1];\n',
         '        var prevCell = cells[prevIdx];\n',
-        '        if (prevCell) {\n',
+        '        if (prevCell && !prevCell.classList.contains("current")) {\n',
         '          prevCell.classList.add("enemy-trail");\n',
         '          prevCell.classList.remove(enemyClass);\n',
+        '          prevCell.innerHTML = "";\n',
         '        }\n',
         '      }\n',
         '      cell.classList.add(enemyClass);\n',
@@ -1191,7 +1226,7 @@ conn_fog(_, _, hidden).
 /* Map legend for start page */
 game_map_legend -->
     html(div(class(map_legend), [
-        h3('Dungeon Map (8x8 Grid)'),
+        h3('Dungeon Map (6x6 Grid)'),
         pre(class(map_pre_large),
 '█ █ █ █ █ █ █ █
 █ ? ? ? ? ? ? █
@@ -1363,6 +1398,23 @@ html_style -->
             text-shadow: 0 0 5px rgba(255,215,0,0.5);
         }
 
+        /* Equipment display */
+        .equipment_stat {
+            margin: 5px 15px;
+            padding: 5px 10px;
+            background: linear-gradient(180deg, #2a3a2a, #1a2a1a);
+            border: 1px solid #4a4;
+            border-radius: 5px;
+        }
+        .equipment_stat .label {
+            color: #8f8;
+        }
+        .equip_icon {
+            font-size: 1.2em;
+            margin: 0 3px;
+            text-shadow: 0 0 5px rgba(100,255,100,0.5);
+        }
+
         /* Game area - Map LEFT, Text RIGHT */
         .game_area {
             display: grid;
@@ -1402,6 +1454,15 @@ html_style -->
             line-height: 1.5;
             font-size: 14px;
         }
+        /* Text highlighting styles */
+        .highlight-earthquake { color: #ff6b35; font-weight: bold; }
+        .highlight-random-event { color: #ffd700; font-weight: bold; }
+        .highlight-guard { color: #ff4444; }
+        .highlight-thief { color: #aa44ff; }
+        .highlight-treasure { color: #ffcc00; }
+        .highlight-damage { color: #ff6666; }
+        .highlight-heal { color: #66ff66; }
+        .highlight-warning { color: #ff8800; font-weight: bold; }
 
         /* Side panel (RIGHT) - stretch to match map height */
         .side_panel {
@@ -1519,6 +1580,45 @@ html_style -->
         @keyframes combat-spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+        /* Combat with guard - red theme */
+        .map_cell.current.combat.guard {
+            background: linear-gradient(180deg, #6a2a2a, #4a1a1a);
+            border: 3px solid #ff4444;
+            box-shadow: 0 0 15px rgba(255,68,68,0.8);
+        }
+        @keyframes guard-pulse {
+            0%, 100% {
+                border-color: #ff4444;
+                box-shadow: 0 0 15px rgba(255,68,68,0.8);
+            }
+            50% {
+                border-color: #ff8888;
+                box-shadow: 0 0 25px rgba(255,68,68,1);
+            }
+        }
+        .map_cell.current.combat.guard {
+            animation: guard-pulse 0.8s infinite;
+        }
+        /* Combat with thief - purple theme */
+        .map_cell.current.combat.thief {
+            background: linear-gradient(180deg, #4a2a6a, #2a1a4a);
+            border: 3px solid #aa44ff;
+            box-shadow: 0 0 15px rgba(170,68,255,0.8);
+            animation: thief-pulse 1s infinite;
+        }
+        @keyframes thief-pulse {
+            0%, 100% {
+                border-color: #aa44ff;
+                box-shadow: 0 0 15px rgba(170,68,255,0.8);
+            }
+            50% {
+                border-color: #cc88ff;
+                box-shadow: 0 0 25px rgba(170,68,255,1);
+            }
+        }
+        .map_cell.current.combat.thief .combat_indicator {
+            background: #aa44ff;
         }
         .map_cell.visited {
             background: #2a2a3e;
@@ -1951,4 +2051,33 @@ html_style -->
         ::-webkit-scrollbar-track { background: #111; }
         ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #555; }
+    ')),
+    html(script('
+        document.addEventListener("DOMContentLoaded", function() {
+            var output = document.getElementById("game_output");
+            if (output) {
+                var text = output.innerHTML;
+                // Earthquake event
+                text = text.replace(/(\\*\\*\\* EARTHQUAKE! \\*\\*\\*)/g, "<span class=\\"highlight-earthquake\\">$1</span>");
+                text = text.replace(/(The dungeon shakes violently!.*)/g, "<span class=\\"highlight-earthquake\\">$1</span>");
+                // Random event header
+                text = text.replace(/(~~ RANDOM EVENT ~~)/g, "<span class=\\"highlight-random-event\\">$1</span>");
+                // Guard mentions
+                text = text.replace(/(The GUARD was thrown from \\w+ to \\w+!)/g, "<span class=\\"highlight-guard\\">$1</span>");
+                text = text.replace(/(\\*\\*\\* .*(guard|GUARD).* \\*\\*\\*)/gi, "<span class=\\"highlight-guard\\">$1</span>");
+                // Thief mentions
+                text = text.replace(/(The THIEF was thrown from \\w+ to \\w+!)/g, "<span class=\\"highlight-thief\\">$1</span>");
+                text = text.replace(/(\\*\\*\\* .*(thief|THIEF).* \\*\\*\\*)/gi, "<span class=\\"highlight-thief\\">$1</span>");
+                // Treasure
+                text = text.replace(/(treasure|TREASURE|gold_treasure)/gi, "<span class=\\"highlight-treasure\\">$1</span>");
+                // Damage
+                text = text.replace(/(You take \\d+ damage)/g, "<span class=\\"highlight-damage\\">$1</span>");
+                text = text.replace(/(\\*\\*\\* TRAP! \\*\\*\\*)/g, "<span class=\\"highlight-damage\\">$1</span>");
+                // Healing
+                text = text.replace(/(recover \\d+ health|restore \\d+ HP)/gi, "<span class=\\"highlight-heal\\">$1</span>");
+                // Warnings
+                text = text.replace(/(The shaking subsides\\.\\.\\.)/g, "<span class=\\"highlight-warning\\">$1</span>");
+                output.innerHTML = text;
+            }
+        });
     ')).

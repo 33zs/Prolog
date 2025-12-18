@@ -1,0 +1,1335 @@
+(base) 0;gyf@gyflab: ~/XZS/testgyf@gyflab:~/XZS/test$  swipl -s dungeon_escape.pl
+
+Welcome to SWI-Prolog (threaded, 64 bits, version 9.0.4)
+SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software.
+Please run ?- license. for legal details.
+
+For online help and background, visit https://www.swi-prolog.org
+For built-in help, use ?- help(Topic). or ?- apropos(Word).
+
+?- difficulty(easy).
+Difficulty set to: easy
+true .
+
+?- start.
+
+============================================
+	   DUNGEON ESCAPE
+============================================
+	 [ Difficulty: easy ]
+
+You wake up in a dark dungeon. The air is damp and cold.
+Somewhere in these depths lies a golden treasure, your
+only hope of buying your freedom. But you are not alone...
+A guard patrols these halls, and a cunning thief also
+seeks the treasure.
+
+Find the treasure, unlock the exit, and escape!
+
+
+===============================================================================
+			   DUNGEON ESCAPE
+		      A Text Adventure Game
+===============================================================================
+
+[ STORY ]
+  You are a brave adventurer trapped in a dark dungeon.
+  Your goal is to find the golden treasure and escape through the exit.
+  But beware! A guard patrols the dungeon trying to capture you,
+  and a thief lurks in the shadows trying to steal the treasure.
+
+[ WIN CONDITION ]
+  - Find and pick up the golden treasure
+  - Find the key and unlock the exit door
+  - Reach the exit hall with the treasure
+
+[ LOSE CONDITIONS ]
+  - Your health drops to 0
+  - The thief escapes with the treasure
+  - You exceed 100 turns
+
+[ MAP ]
+  The dungeon layout is shrouded in darkness.
+  Use the "map." command to see rooms you have explored.
+  Unexplored areas are marked as "???"
+
+[ ITEMS ]
+  torch		- Light source, reveals traps
+  sword		- Weapon for combat
+  shield	- Reduces damage taken
+  health_potion - Restores 30 HP
+  ancient_book	- Contains hints about the dungeon
+  rope		- Can tie up the thief
+  key		- Unlocks the exit door
+  gold_treasure - Your goal! Find and escape with it
+  dagger	- A weaker weapon, better than nothing
+  lantern	- Another light source
+  food_ration	- Restores 15 HP
+  map_scroll	- Reveals the entire dungeon layout
+  bomb		- Deals heavy damage to enemies
+  lockpick	- Attempt to pick the exit lock (may break)
+  armor		- Reduces damage taken
+  magic_ring	- Grants +50 gold and bonus score
+
+[ ENEMIES ]
+  Guard: Patrols dungeon, becomes aggressive when you have treasure.
+	 Deals 25 damage (reduced by sword/shield).
+  Thief: Tries to steal treasure. Can be caught with rope or take(thief).
+
+[ TRAPS ]
+  - 2 traps are randomly placed each game
+  - Deal 5-10 damage in darkness; torch reveals and avoids them
+
+[ COMMANDS ]
+  start.	   -- Start/restart the game
+  n.  s.  e.  w.   -- Move North/South/East/West
+  look.		   -- Look around current room
+  map.		   -- Show explored areas of the dungeon
+  take(Object).	   -- Pick up an object (e.g., take(torch).)
+  drop(Object).	   -- Put down an object
+  use(Object).	   -- Use an object (e.g., use(key).)
+  inventory. / i.  -- Check your inventory
+  status.	   -- Check game status and enemy locations
+  attack.	   -- Attack an enemy in the same room
+  shop.		   -- View items available for purchase
+  buy(Item).	   -- Buy an item from the shop
+  sell(Item).	   -- Sell a valuable item for gold
+  instructions.	   -- Show these instructions
+  difficulty(X).   -- Set difficulty: easy, normal, hard
+  halt.		   -- Quit the game
+
+[ GOLD & SHOP ]
+  - Earn gold by selling valuable items or using magic_ring
+  - Shop items: health_potion(30g), torch(15g), rope(20g),
+		food_ration(10g), bomb(50g), map_scroll(40g)
+
+[ DIFFICULTY LEVELS ]
+  Easy:	  170 HP, enemies move 2x slower, 40% trap/guard damage
+  Normal: 100 HP, standard speed and damage
+  Hard:	  90 HP, enemies move 2x faster, 50% more damage, -15% combat hit/kill
+
+[ SCORING ]
+  Score = 1000 - (Turns x 5) + (Health x 2)
+  Fewer turns and more health = higher score!
+
+[ TIPS ]
+  1. Pick up the torch first to avoid traps
+  2. Explore the dungeon to find useful items
+  3. Find the key to unlock the exit
+  4. Get the treasure, unlock the exit, and escape!
+
+===============================================================================
+
+You are at the dungeon entrance.
+Stone walls surround you, covered in moss and ancient markings.
+A faint light filters in from cracks above.
+
+
+Exits:
+  n -> ???
+  s -> ???
+  w -> ???
+  e -> ???
+
+[Health: 170/170 | Turns Left: 100]
+true .
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0	 1   2	 3   4	 5   6	 7
+0 [###][###][###][###][###][###][###][###]
+1 [###][???][???][???][???][???][???][###]
+2 [###][???][*ENTR*][???][???][???][???][###]
+3 [###][???][???][???][???][???][???][###]
+4 [###][???][???][???][???][???][???][###]
+5 [###][???][???][???][???][???][???][###]
+6 [###][???][???][???][???][???][???][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 1/36 rooms
+===============================================
+
+true.
+
+?- status.
+
+=== STATUS ===
+Health: 170/170
+Gold: 0
+Turns Left: 100
+Inventory: empty
+Adversaries:
+  guard (patrol) - location unknown
+  thief (treasure_hunter) - location unknown
+
+true.
+
+?- i.
+You are carrying:
+  (nothing)
+true.
+
+?- n.
+You are in a wine cellar.
+Rows of dusty bottles line wooden racks.
+Some bottles look centuries old.
+
+There is a food_ration here.
+
+Exits:
+  s -> entrance
+  w -> ???
+  e -> ???
+
+[Health: 170/170 | Turns Left: 100]
+
+~~ RANDOM EVENT ~~
+You hear heavy footsteps echoing from the somewhere nearby...
+
+true .
+
+?- look.
+You are in a wine cellar.
+Rows of dusty bottles line wooden racks.
+Some bottles look centuries old.
+
+There is a food_ration here.
+
+Exits:
+  s -> entrance
+  w -> ???
+  e -> ???
+
+[Health: 170/170 | Turns Left: 99]
+true .
+
+?- take(food_ration).
+OK. You pick up the food_ration.
+true.
+
+?- i.
+You are carrying:
+  - food_ration
+true.
+
+?- e.
+You are in an unknown area.
+The surroundings are unfamiliar.
+
+
+Exits:
+  s -> ???
+  w -> wine_cellar
+  e -> ???
+
+[Health: 170/170 | Turns Left: 98]
+true.
+
+?- look.
+You are in an unknown area.
+The surroundings are unfamiliar.
+
+
+Exits:
+  s -> ???
+  w -> wine_cellar
+  e -> ???
+
+[Health: 170/170 | Turns Left: 97]
+true.
+
+?- s.
+
+*** TRAP! ***
+You stumble into a trap in the darkness! You take 3 damage.
+Health: 167
+You are in an old storage room.
+Dusty crates and barrels fill the space.
+Some containers look like they haven't been opened in years.
+
+
+Exits:
+  n -> hallway_n
+  s -> ???
+  w -> entrance
+  e -> ???
+
+[Health: 167/170 | Turns Left: 97]
+
+~~ RANDOM EVENT ~~
+A giant rat snatches your food_ration and runs away!
+You see it scurry n into the darkness...
+
+true .
+
+?- e.
+You are in an unknown area.
+The surroundings are unfamiliar.
+
+
+Exits:
+  n -> ???
+  s -> ???
+  w -> storage
+  e -> ???
+
+[Health: 167/170 | Turns Left: 96]
+
+~~ RANDOM EVENT ~~
+You hear heavy footsteps echoing from the somewhere nearby...
+
+true.
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0	 1   2	 3   4	 5   6	 7
+0 [###][###][###][###][###][###][###][###]
+1 [###][???][WINE][H-N][???][???][???][###]
+2 [###][???][ENTR][STOR][*CTYD*][???][???][###]
+3 [###][???][???][???][???][???][???][###]
+4 [###][???][???][???][???][???][???][###]
+5 [###][???][???][???][???][???][???][###]
+6 [###][???][???][???][???][???][???][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 5/36 rooms
+===============================================
+
+true.
+
+?- s.
+You are in a watchtower.
+Arrow slits provide views of the corridors.
+A guard post stands abandoned.
+
+There is a bomb here.
+
+Exits:
+  n -> courtyard
+  s -> ???
+  w -> ???
+  e -> ???
+
+[Health: 167/170 | Turns Left: 95]
+true .
+
+?- take(bomb).
+OK. You pick up the bomb.
+true.
+
+?- s.
+You are in an unknown area.
+The surroundings are unfamiliar.
+
+
+Exits:
+  n -> watchtower
+  s -> ???
+  w -> ???
+  e -> ???
+
+[Health: 167/170 | Turns Left: 93]
+true.
+
+?- s.
+You are in old stables.
+Empty stalls line the walls.
+The smell of hay still lingers.
+
+
+Exits:
+  n -> hallway_w
+  s -> ???
+  w -> ???
+  e -> ???
+
+[Health: 167/170 | Turns Left: 92]
+true .
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][???][WINE][H-N][???][???][???][###]
+2 [###][???][ENTR][STOR][CTYD][???][???][###]
+3 [###][???][???][???][TOWR][???][???][###]
+4 [###][???][???][???][H-W][???][???][###]
+5 [###][???][???][???][*STAB*][???][???][###]
+6 [###][???][???][???][???][???][???][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 8/36 rooms
+===============================================
+
+true.
+
+?- w.
+You are in the guard barracks.
+Rows of bunk beds fill the room.
+Old uniforms and equipment are scattered about.
+
+There is a sword here.
+There is a armor here.
+
+Exits:
+  n -> ???
+  s -> ???
+  w -> ???
+  e -> stable
+
+[Health: 167/170 | Turns Left: 91]
+true .
+
+?- take(sword).
+OK. You pick up the sword.
+true.
+
+?- take(armor).
+OK. You pick up the armor.
+true.
+
+?- i.
+You are carrying:
+  - bomb
+  - sword
+  - armor
+true.
+
+?- n.
+You are in the smithy.
+A cold forge sits in the center.
+Weapons and tools hang from the walls.
+
+
+Exits:
+  n -> ???
+  s -> barracks
+  w -> ???
+  e -> hallway_w
+
+[Health: 167/170 | Turns Left: 88]
+You sense someone lurking in the shadows...
+true .
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][???][WINE][H-N][???][???][???][###]
+2 [###][???][ENTR][STOR][CTYD][???][???][###]
+3 [###][???][???][???][TOWR][???][???][###]
+4 [###][???][???][*SMIT*][H-W][???][???][###]
+5 [###][???][???][BARR][STAB][???][???][###]
+6 [###][???][???][???][???][???][???][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 10/36 rooms
+===============================================
+
+true.
+
+?- w.
+*** You have discovered the THIEF lurking in the shadows! ***
+
+*** TRAP! ***
+You stumble into a trap in the darkness! You take 3 damage.
+Health: 164
+You are in an old prison cell.
+Iron bars and chains hang from the walls.
+You shudder thinking about who was kept here.
+
+There is a lockpick here.
+*** WARNING: The thief is here! ***
+
+Exits:
+  n -> ???
+  s -> ???
+  w -> ???
+  e -> smithy
+
+[Health: 164/170 | Turns Left: 87]
+
+~~ RANDOM EVENT ~~
+You feel like you are being watched...
+
+true .
+
+?- take(lockpick).
+OK. You pick up the lockpick.
+
+~~ RANDOM EVENT ~~
+A ghostly voice whispers: "The key opens many doors, but breaks after one use..."
+
+true.
+
+?- e.
+You are in the smithy.
+A cold forge sits in the center.
+Weapons and tools hang from the walls.
+
+
+Exits:
+  n -> ???
+  s -> barracks
+  w -> prison_cell
+  e -> hallway_w
+
+[Health: 164/170 | Turns Left: 85]
+You sense someone lurking in the shadows...
+true .
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][???][WINE][H-N][???][???][???][###]
+2 [###][???][ENTR][STOR][CTYD][???][???][###]
+3 [###][???][???][???][TOWR][???][???][###]
+4 [###][???][PRI][*SMIT*][H-W][???][???][###]
+5 [###][???][???][BARR][STAB][???][???][###]
+6 [###][???][???][???][???][???][???][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 11/36 rooms
+===============================================
+
+true.
+
+?- n.
+You are in an unknown area.
+The surroundings are unfamiliar.
+
+
+Exits:
+  n -> storage
+  s -> smithy
+  w -> ???
+  e -> watchtower
+
+[Health: 164/170 | Turns Left: 84]
+true.
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][???][WINE][H-N][???][???][???][###]
+2 [###][???][ENTR][STOR][CTYD][???][???][###]
+3 [###][???][???][*H-S*][TOWR][???][???][###]
+4 [###][???][PRI][SMIT][H-W][???][???][###]
+5 [###][???][???][BARR][STAB][???][???][###]
+6 [###][???][???][???][???][???][???][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 12/36 rooms
+===============================================
+
+true.
+
+?- w.
+You are in the servants quarters.
+Simple beds and belongings fill the cramped space.
+Remnants of daily life remain frozen in time.
+
+There is a ancient_coin here.
+
+Exits:
+  n -> entrance
+  s -> prison_cell
+  w -> ???
+  e -> hallway_s
+
+[Health: 164/170 | Turns Left: 83]
+You sense someone lurking in the shadows...
+true .
+
+?- take(ancient_coin).
+You pick up an ancient coin worth 25 gold! Total gold: 25
+You sense someone lurking in the shadows...
+true.
+
+?- w.
+You are in the treasure room!
+Golden light seems to emanate from within.
+A magnificent golden treasure sits on a pedestal!
+
+There is a gold_treasure here.
+
+Exits:
+  n -> ???
+  s -> ???
+  e -> servants_quarters
+
+[Health: 164/170 | Turns Left: 81]
+
+~~ RANDOM EVENT ~~
+A giant rat snatches your bomb and runs away!
+You see it scurry n into the darkness...
+
+true .
+
+?- look.
+You are in the treasure room!
+Golden light seems to emanate from within.
+A magnificent golden treasure sits on a pedestal!
+
+There is a gold_treasure here.
+
+Exits:
+  n -> ???
+  s -> ???
+  e -> servants_quarters
+
+[Health: 164/170 | Turns Left: 80]
+true .
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][???][WINE][H-N][???][???][???][###]
+2 [###][???][ENTR][STOR][CTYD][???][???][###]
+3 [###][*TRES*][SERV][H-S][TOWR][???][???][###]
+4 [###][???][PRI][SMIT][H-W][???][???][###]
+5 [###][???][???][BARR][STAB][???][???][###]
+6 [###][???][???][???][???][???][???][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 14/36 rooms
+===============================================
+
+true.
+
+?- w.
+You can't go that way.
+true.
+
+?- n.
+You are in an alchemy laboratory.
+Bubbling vials and strange apparatus cover the tables.
+Colorful liquids glow with mysterious energy.
+
+There is a magic_ring here.
+There is a bomb here.
+
+Exits:
+  n -> ???
+  s -> treasure_room
+  e -> entrance
+
+[Health: 164/170 | Turns Left: 80]
+
+~~ RANDOM EVENT ~~
+You find 11 gold coins hidden in a crack in the wall!
+Total gold: 36
+
+true .
+
+?- take(bomb).
+OK. You pick up the bomb.
+
+~~ RANDOM EVENT ~~
+You find 28 gold coins hidden in a crack in the wall!
+Total gold: 64
+
+true.
+
+?- take(magic_ring).
+OK. You pick up the magic_ring.
+true.
+
+?- use(magic_ring).
+
+You activate the magic ring!
+It dissolves in a shower of gold coins!
+You gained 50 gold! Total gold: 114
+true.
+
+?- i.
+You are carrying:
+  - sword
+  - armor
+  - lockpick
+  - bomb
+true.
+
+?- gold.
+You have 114 gold coins.
+true.
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][???][WINE][H-N][???][???][???][###]
+2 [###][*ALCH*][ENTR][STOR][CTYD][???][???][###]
+3 [###][TRES][SERV][H-S][TOWR][???][???][###]
+4 [###][???][PRI][SMIT][H-W][???][???][###]
+5 [###][???][???][BARR][STAB][???][???][###]
+6 [###][???][???][???][???][???][???][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 15/36 rooms
+===============================================
+
+true.
+
+?- n.
+You are in an unknown area.
+The surroundings are unfamiliar.
+
+
+Exits:
+  s -> alchemy_lab
+  e -> wine_cellar
+
+[Health: 164/170 | Turns Left: 76]
+
+~~ RANDOM EVENT ~~
+A giant rat snatches your armor and runs away!
+You see it scurry s into the darkness...
+
+true.
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][*H-E*][WINE][H-N][???][???][???][###]
+2 [###][ALCH][ENTR][STOR][CTYD][???][???][###]
+3 [###][TRES][SERV][H-S][TOWR][???][???][###]
+4 [###][???][PRI][SMIT][H-W][???][???][###]
+5 [###][???][???][BARR][STAB][???][???][###]
+6 [###][???][???][???][???][???][???][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 16/36 rooms
+===============================================
+
+true.
+
+?- s.
+You are in an alchemy laboratory.
+Bubbling vials and strange apparatus cover the tables.
+Colorful liquids glow with mysterious energy.
+
+There is a armor here.
+
+Exits:
+  n -> hallway_e
+  s -> treasure_room
+  e -> entrance
+
+[Health: 164/170 | Turns Left: 75]
+true .
+
+?- s.
+You are in the treasure room!
+Golden light seems to emanate from within.
+A magnificent golden treasure sits on a pedestal!
+
+There is a gold_treasure here.
+
+Exits:
+  n -> alchemy_lab
+  s -> ???
+  e -> servants_quarters
+
+[Health: 164/170 | Turns Left: 74]
+
+~~ RANDOM EVENT ~~
+You find 31 gold coins hidden in a crack in the wall!
+Total gold: 145
+
+true .
+
+?- s.
+You are in an ancient library.
+Dusty books and scrolls fill the shelves.
+Some tomes seem to glow with arcane energy.
+
+There is a health_potion here.
+There is a map_scroll here.
+
+Exits:
+  n -> treasure_room
+  s -> ???
+  e -> prison_cell
+
+[Health: 164/170 | Turns Left: 73]
+
+~~ RANDOM EVENT ~~
+*** EARTHQUAKE! ***
+The dungeon shakes violently! Rocks fall from the ceiling!
+You hear confused shouts as enemies scramble...
+
+The GUARD was thrown from dark_corridor to secret_passage!
+The THIEF was thrown from prison_cell to armory!
+
+The shaking subsides...
+
+true .
+
+?- take(map_scroll).
+OK. You pick up the map_scroll.
+true.
+
+?- use(map_scroll).
+You unroll the ancient map scroll...
+The entire dungeon layout is revealed to you!
+
+~~ RANDOM EVENT ~~
+*** EARTHQUAKE! ***
+The dungeon shakes violently! Rocks fall from the ceiling!
+You hear confused shouts as enemies scramble...
+
+The GUARD was thrown from secret_passage to armory!
+The THIEF was thrown from armory to secret_passage!
+
+The shaking subsides...
+
+true .
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][H-E][WINE][H-N][CHAP][ARM][DARK][###]
+2 [###][ALCH][ENTR][STOR][CTYD][TORT][SEC][###]
+3 [###][TRES][SERV][H-S][TOWR][GREAT][THRN][###]
+4 [###][*LIB*][PRI][SMIT][H-W][GUARD][WELL][###]
+5 [###][BATH][CROS][BARR][STAB][EXIT][CRYP][###]
+6 [###][VAUL][MARK][PIT][GALL][OBSV][KITC][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 36/36 rooms
+===============================================
+
+true.
+
+?- take(health_potion).
+OK. You pick up the health_potion.
+true.
+
+?- status.
+
+=== STATUS ===
+Health: 164/170
+Gold: 145
+Turns Left: 69
+Inventory: [sword,lockpick,bomb,health_potion]
+Adversaries:
+  guard (patrol) - last seen near: armory
+  thief (treasure_hunter) - last seen near: torture_chamber
+
+true.
+
+?- s.
+You are in the bathhouse.
+Marble pools lie empty and cracked.
+Faded mosaics decorate the walls.
+
+There is a ancient_coin here.
+
+Exits:
+  n -> library
+  s -> vault
+  e -> crossing
+
+[Health: 164/170 | Turns Left: 69]
+
+~~ RANDOM EVENT ~~
+You notice something glinting in a corner...
+A rusty dagger. Not very useful, but interesting.
+
+true .
+
+?- take(ancient_coin).
+You pick up an ancient coin worth 25 gold! Total gold: 170
+
+~~ RANDOM EVENT ~~
+A ghostly voice whispers: "Light reveals what darkness hides..."
+
+true.
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][H-E][WINE][H-N][CHAP][ARM][DARK][###]
+2 [###][ALCH][ENTR][STOR][CTYD][TORT][SEC][###]
+3 [###][TRES][SERV][H-S][TOWR][GREAT][THRN][###]
+4 [###][LIB][PRI][SMIT][H-W][GUARD][WELL][###]
+5 [###][*BATH*][CROS][BARR][STAB][EXIT][CRYP][###]
+6 [###][VAUL][MARK][PIT][GALL][OBSV][KITC][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 36/36 rooms
+===============================================
+
+true.
+
+?- s.
+You are in a secure vault.
+Heavy iron doors guard this room.
+Valuable items glitter in the dim light.
+
+There is a gem_ruby here.
+There is a key here.
+
+Exits:
+  n -> bathhouse
+  e -> marketplace
+
+[Health: 164/170 | Turns Left: 67]
+
+~~ RANDOM EVENT ~~
+You hear heavy footsteps echoing from the somewhere nearby...
+
+true .
+
+?- take(gem_ruby).
+OK. You pick up the gem_ruby (worth 100 gold).
+true.
+
+?- take(key).
+OK. You pick up the key.
+
+*** You found the key! ***
+*** The GUARD senses the key has been taken! He is now hunting you! ***
+
+*** The guard notices the key is missing! He's coming for you! ***
+The guard is now actively hunting you!
+true.
+
+?- n.
+You are in the bathhouse.
+Marble pools lie empty and cracked.
+Faded mosaics decorate the walls.
+
+
+Exits:
+  n -> library
+  s -> vault
+  e -> crossing
+
+[Health: 164/170 | Turns Left: 64]
+
+~~ RANDOM EVENT ~~
+You find 39 gold coins hidden in a crack in the wall!
+Total gold: 209
+
+true .
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][H-E][WINE][H-N][CHAP][ARM][DARK][###]
+2 [###][ALCH][ENTR][STOR][CTYD][TORT][SEC][###]
+3 [###][TRES][SERV][H-S][TOWR][GREAT][THRN][###]
+4 [###][LIB][PRI][SMIT][H-W][GUARD][WELL][###]
+5 [###][*BATH*][CROS][BARR][STAB][EXIT][CRYP][###]
+6 [###][VAUL][MARK][PIT][GALL][OBSV][KITC][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 36/36 rooms
+===============================================
+
+true.
+
+?- s.
+You are in a secure vault.
+Heavy iron doors guard this room.
+Valuable items glitter in the dim light.
+
+
+Exits:
+  n -> bathhouse
+  e -> marketplace
+
+[Health: 164/170 | Turns Left: 63]
+true .
+
+?- e.
+You are in an underground marketplace!
+Abandoned stalls line the walls.
+A mysterious merchant has set up shop here.
+Type "shop." to see what is for sale!
+
+
+Exits:
+  n -> crossing
+  w -> vault
+  e -> dungeon_pit
+
+[Health: 164/170 | Turns Left: 62]
+
+~~ RANDOM EVENT ~~
+You find some healing herbs growing in the cracks!
+You eat them and recover 11 health. Health: 170/170
+
+true .
+
+?- shop.
+
+=== MARKETPLACE SHOP ===
+Available items for sale:
+  health_potion - 30 gold
+  torch - 15 gold
+  rope - 20 gold
+  food_ration - 10 gold
+  bomb - 50 gold
+  map_scroll - 40 gold
+
+Your gold: 209
+Use: buy(item). to purchase.
+true.
+
+?- buy(rope).
+You bought rope for 20 gold. Remaining gold: 189
+
+~~ RANDOM EVENT ~~
+A cold wind blows through the corridor...
+
+true.
+
+?- buy(bomb).
+You bought bomb for 50 gold. Remaining gold: 139
+
+*** Oh no! The thief has stolen the treasure! ***
+Thief: "Better luck next time, adventurer!"
+You must catch the thief to recover it!
+true.
+
+?- status.
+
+=== STATUS ===
+Health: 170/170
+Gold: 139
+Turns Left: 59
+Inventory: [sword,lockpick,bomb,health_potion,gem_ruby,key,rope,bomb]
+Adversaries:
+  guard (chaser) - last seen near: chapel
+  thief (escaping) - last seen near: treasure_room
+
+true.
+
+?- n.
+You are in an unknown area.
+The surroundings are unfamiliar.
+
+
+Exits:
+  n -> prison_cell
+  s -> marketplace
+  w -> bathhouse
+  e -> barracks
+
+[Health: 170/170 | Turns Left: 59]
+
+~~ RANDOM EVENT ~~
+A ghostly voice whispers: "Secret passages connect distant places..."
+
+true.
+
+?- status.
+
+=== STATUS ===
+Health: 170/170
+Gold: 139
+Turns Left: 58
+Inventory: [sword,lockpick,bomb,health_potion,gem_ruby,key,rope,bomb]
+Adversaries:
+  guard (chaser) - last seen near: chapel
+  thief (escaping) - last seen near: treasure_room
+
+true.
+
+?- n.
+You are in an old prison cell.
+Iron bars and chains hang from the walls.
+You shudder thinking about who was kept here.
+
+
+Exits:
+  n -> servants_quarters
+  s -> crossing
+  w -> library
+  e -> smithy
+
+[Health: 170/170 | Turns Left: 58]
+
+~~ RANDOM EVENT ~~
+You notice something glinting in a corner...
+A small gem! It might be valuable.
+
+You sense someone lurking in the shadows...
+true .
+
+?- status.
+
+=== STATUS ===
+Health: 170/170
+Gold: 139
+Turns Left: 57
+Inventory: [sword,lockpick,bomb,health_potion,gem_ruby,key,rope,bomb]
+Adversaries:
+  guard (chaser) - last seen near: chapel
+  thief (escaping) - last seen near: library
+
+true.
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][H-E][WINE][H-N][CHAP][ARM][DARK][###]
+2 [###][ALCH][ENTR][STOR][CTYD][TORT][SEC][###]
+3 [###][TRES][SERV][H-S][TOWR][GREAT][THRN][###]
+4 [###][LIB][*PRI*][SMIT][H-W][GUARD][WELL][###]
+5 [###][BATH][CROS][BARR][STAB][EXIT][CRYP][###]
+6 [###][VAUL][MARK][PIT][GALL][OBSV][KITC][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 36/36 rooms
+===============================================
+
+true.
+
+?- w.
+You are in an ancient library.
+Dusty books and scrolls fill the shelves.
+Some tomes seem to glow with arcane energy.
+
+*** WARNING: The thief is here! ***
+
+Exits:
+  n -> treasure_room
+  s -> bathhouse
+  e -> prison_cell
+
+[Health: 170/170 | Turns Left: 57]
+true .
+
+?- take(thief).
+The thief is too quick to grab with bare hands!
+Try using a rope to tie him up, or attack him with a weapon.
+true.
+
+?- use(rope).
+You use the rope to tie up the thief!
+The stolen treasure falls to the ground!
+The thief is now imprisoned.
+You sense someone lurking in the shadows...
+true.
+
+?- take(gold_treasure).
+OK. You pick up the gold_treasure (worth 500 gold).
+
+*** You have the treasure! Now escape! ***
+But beware - the THIEF will hunt you down!
+
+*** The thief wants your treasure! ***
+The thief is now stalking you!
+You sense someone lurking in the shadows...
+true.
+
+?- e.
+You are in an old prison cell.
+Iron bars and chains hang from the walls.
+You shudder thinking about who was kept here.
+
+*** WARNING: The thief is here! ***
+
+Exits:
+  n -> servants_quarters
+  s -> crossing
+  w -> library
+  e -> smithy
+
+[Health: 170/170 | Turns Left: 54]
+true .
+
+?- attack.
+
+*** You attack the thief! ***
+You strike the thief!
+The thief is knocked unconscious!
+true.
+
+?- e.
+You are in the smithy.
+A cold forge sits in the center.
+Weapons and tools hang from the walls.
+
+
+Exits:
+  n -> hallway_s
+  s -> barracks
+  w -> prison_cell
+  e -> hallway_w
+
+[Health: 170/170 | Turns Left: 52]
+You sense someone lurking in the shadows...
+true .
+
+?- e.
+You are in an unknown area.
+The surroundings are unfamiliar.
+
+
+Exits:
+  n -> watchtower
+  s -> stable
+  w -> smithy
+  e -> guard_room
+
+[Health: 170/170 | Turns Left: 51]
+true.
+
+?- s.
+You are in old stables.
+Empty stalls line the walls.
+The smell of hay still lingers.
+
+
+Exits:
+  n -> hallway_w
+  s -> gallery
+  w -> barracks
+  e -> exit_hall
+
+[Health: 170/170 | Turns Left: 50]
+true .
+
+?- map.
+
+============== DUNGEON MAP (8x8 Grid) ==============
+  [Room] = Explored, [???] = Unexplored, [###] = Wall
+  *Room* = You are here
+
+     0   1   2   3   4   5   6   7 
+0 [###][###][###][###][###][###][###][###]
+1 [###][H-E][WINE][H-N][CHAP][ARM][DARK][###]
+2 [###][ALCH][ENTR][STOR][CTYD][TORT][SEC][###]
+3 [###][TRES][SERV][H-S][TOWR][GREAT][THRN][###]
+4 [###][LIB][PRI][SMIT][H-W][GUARD][WELL][###]
+5 [###][BATH][CROS][BARR][*STAB*][EXIT][CRYP][###]
+6 [###][VAUL][MARK][PIT][GALL][OBSV][KITC][###]
+7 [###][###][###][###][###][###][###][###]
+
+  Explored: 36/36 rooms
+===============================================
+
+true.
+
+?- e.
+The door is locked! You need a key.
+You can't go that way.
+true.
+
+?- use(key).
+You unlock the door to the exit hall!
+The key breaks in the lock and crumbles to dust.
+
+~~ RANDOM EVENT ~~
+Distant screams echo through the dungeon...
+
+true.
+
+?- look.
+You are in old stables.
+Empty stalls line the walls.
+The smell of hay still lingers.
+
+
+Exits:
+  n -> hallway_w
+  s -> gallery
+  w -> barracks
+  e -> exit_hall
+
+[Health: 170/170 | Turns Left: 48]
+true .
+
+?- e.
+You are in the exit hall!
+Daylight streams in from an opening ahead.
+Freedom is just steps away!
+
+
+Exits:
+  n -> guard_room
+  s -> observatory
+  w -> stable
+  e -> crypt
+
+[Health: 170/170 | Turns Left: 48]
+
+*******************************************
+*         CONGRATULATIONS!                *
+*   You escaped with the treasure!        *
+*******************************************
+
+Final Score: 1334
+Turns taken: 53
+Health remaining: 170
+
+
+The game is over. Enter "start." to play again or "halt." to quit.
+true .
+
+?- halt.
